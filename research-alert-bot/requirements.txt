@@ -1,6 +1,0 @@
-# Package candidates for future implementation
-feedparser
-PyYAML
-python-dotenv
-requests
-python-telegram-bot
