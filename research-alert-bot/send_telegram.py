@@ -12,12 +12,49 @@ TEST_MESSAGE = """[Research Alert Bot Test]
 Telegram connection is working."""
 
 
+def normalize_secret_value(value: str) -> str:
+    """Normalize common copy/paste mistakes in secret values."""
+    normalized = value.strip().strip('"').strip("'")
+    if "=" in normalized and normalized.split("=", 1)[0] in {
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_CHAT_ID",
+    }:
+        normalized = normalized.split("=", 1)[1].strip().strip('"').strip("'")
+
+    return normalized
+
+
+def normalize_bot_token(value: str) -> str:
+    """Normalize Telegram bot token secret values."""
+    token = normalize_secret_value(value)
+
+    for prefix in (
+        "https://api.telegram.org/bot",
+        "http://api.telegram.org/bot",
+    ):
+        if token.startswith(prefix):
+            token = token.removeprefix(prefix).strip("/")
+
+    if token.endswith("/sendMessage"):
+        token = token.removesuffix("/sendMessage").strip("/")
+
+    if token.startswith("bot") and len(token) > 3 and token[3].isdigit():
+        token = token[3:]
+
+    return token
+
+
 def send_message(text: str) -> bool:
     """Send a text message through the Telegram Bot API."""
     load_dotenv()
 
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+    if bot_token:
+        bot_token = normalize_bot_token(bot_token)
+    if chat_id:
+        chat_id = normalize_secret_value(chat_id)
 
     if not bot_token:
         print("Missing required environment variable: TELEGRAM_BOT_TOKEN")
@@ -42,6 +79,11 @@ def send_message(text: str) -> bool:
     if response.status_code != requests.codes.ok:
         print(f"Telegram sendMessage failed with status code: {response.status_code}")
         print(f"Response text: {response.text}")
+        if response.status_code == requests.codes.not_found:
+            print(
+                "Telegram returned 404 Not Found. Verify that "
+                "TELEGRAM_BOT_TOKEN contains only the BotFather token value."
+            )
         return False
 
     return True
