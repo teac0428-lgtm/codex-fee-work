@@ -1,11 +1,11 @@
 high_priority:
-  - HBM
-  - AI capex
+  - HBM | High Bandwidth Memory
+  - AI capex | AI capital expenditure
   - hyperscaler capex
   - GPU cloud
   - CoreWeave
   - Meta cloud
-  - data center power
+  - data center power | datacenter power
   - DRAM ASP
   - NAND ASP
   - server DRAM
@@ -14,9 +14,9 @@ high_priority:
   - advanced packaging
 
 medium_priority:
-  - AI infrastructure
+  - AI infrastructure | AI infra
   - memory cycle
-  - data center
+  - data center | datacenter
   - cloud contract
   - GPU rental
   - H100
@@ -25,7 +25,7 @@ medium_priority:
 
 korean:
   - 고대역폭메모리
-  - AI 데이터센터
+  - AI 데이터센터 | 인공지능 데이터센터
   - 데이터센터 전력
   - 전력 인프라
   - 서버 D램
