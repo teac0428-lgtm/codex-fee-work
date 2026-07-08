@@ -33,3 +33,18 @@ korean:
   - 하이퍼스케일러
   - AI 설비투자
   - 반도체 패키징
+
+negative_keywords:
+  - sponsored
+  - advertisement
+  - giveaway
+  - rumor
+  - stock rises
+  - stock falls
+  - price target
+  - analyst rating
+  - 특징주
+  - 급등
+  - 급락
+  - 목표가
+  - 광고
