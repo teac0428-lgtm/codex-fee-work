@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: "0 * * * *"
 
+concurrency:
+  group: rss-alert-bot
+  cancel-in-progress: false
+
 jobs:
   run-alert:
     runs-on: ubuntu-latest
@@ -26,6 +30,22 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Write KST date
+        run: python collector.py --write-kst-date
+
+      - name: Export KST date
+        id: kst_date
+        run: |
+          echo "date=$(cat date.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore sent today cache
+        uses: actions/cache@v4
+        with:
+          path: research-alert-bot/sent_today.json
+          key: rss-sent-today-${{ steps.kst_date.outputs.date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            rss-sent-today-${{ steps.kst_date.outputs.date }}-
 
       - name: Run alert bot
         run: python collector.py

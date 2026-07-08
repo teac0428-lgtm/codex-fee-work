@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import argparse
+import hashlib
+import json
+import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import feedparser
 import yaml
@@ -13,6 +19,8 @@ from send_telegram import send_message
 BASE_DIR = Path(__file__).resolve().parent
 SOURCES_FILE = BASE_DIR / "sources.yaml"
 KEYWORDS_FILE = BASE_DIR / "keywords.yaml"
+SENT_TODAY_FILE = BASE_DIR / "sent_today.json"
+KST_DATE_FILE = BASE_DIR / "date.txt"
 POSITIVE_KEYWORD_GROUPS = ("high_priority", "medium_priority", "korean")
 KEYWORD_GROUPS = (*POSITIVE_KEYWORD_GROUPS, "negative_keywords")
 MAX_SEND_PER_RUN = 10
@@ -28,6 +36,74 @@ KEYWORD_SCORES = {
     "korean": KOREAN_SCORE,
     "negative_keywords": NEGATIVE_KEYWORD_SCORE,
 }
+
+
+def get_kst_date() -> str:
+    """Return today's date in KST as YYYY-MM-DD."""
+    return datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
+
+
+def write_kst_date(path: Path = KST_DATE_FILE) -> None:
+    """Write today's KST date to a text file."""
+    path.write_text(get_kst_date(), encoding="utf-8")
+
+
+def normalize_title(title: str | None) -> str:
+    """Normalize a title for stable daily duplicate fingerprints."""
+    normalized = title or ""
+    normalized = normalized.lower()
+    normalized = re.sub(r"\s+-\s+[^-]+$", "", normalized)
+    normalized = re.sub(r"[^\w\s]", " ", normalized, flags=re.UNICODE)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()
+
+
+def make_fingerprint(title: str) -> str:
+    """Build a SHA-256 fingerprint from a normalized title."""
+    normalized_title = normalize_title(title)
+    return hashlib.sha256(normalized_title.encode("utf-8")).hexdigest()
+
+
+def load_sent_today(path: Path = SENT_TODAY_FILE, today: str | None = None) -> set[str]:
+    """Load today's sent fingerprints from cache state."""
+    sent_date = today or get_kst_date()
+    if not path.exists():
+        return set()
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"Warning: failed to parse sent_today.json; resetting cache: {exc}")
+        return set()
+
+    if not isinstance(data, dict):
+        print("Warning: sent_today.json is not an object; resetting cache.")
+        return set()
+
+    if data.get("date") != sent_date:
+        return set()
+
+    items = data.get("items", [])
+    if not isinstance(items, list):
+        print("Warning: sent_today.json items is not a list; resetting cache.")
+        return set()
+
+    return {str(item) for item in items}
+
+
+def save_sent_today(
+    items: set[str], path: Path = SENT_TODAY_FILE, today: str | None = None
+) -> None:
+    """Save today's sent fingerprints for GitHub Actions cache."""
+    sent_date = today or get_kst_date()
+    data = {
+        "date": sent_date,
+        "items": sorted(items),
+    }
+    path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
 
 
 def load_sources(path: Path = SOURCES_FILE) -> list[dict[str, str]]:
@@ -108,8 +184,9 @@ def process_source(
     source: dict[str, str],
     keywords: dict[str, list[str]],
     seen_links: set[str],
+    sent_today: set[str],
     sends_remaining: int,
-) -> tuple[int, int, int, int, int, int, int]:
+) -> tuple[int, int, int, int, int, int, int, int]:
     """Print and send scored RSS entries for one source and return counts."""
     name = source.get("name", "Unnamed source")
     url = source.get("url")
@@ -117,7 +194,7 @@ def process_source(
     if not url:
         print(f"\nSource: {name}")
         print("  Error: missing RSS url")
-        return 0, 0, 0, 0, 0, 0, 0
+        return 0, 0, 0, 0, 0, 0, 0, 0
 
     checked_entries = 0
     matched_entries = 0
@@ -126,6 +203,7 @@ def process_source(
     duplicate_link_count = 0
     rejected_by_score = 0
     negative_keyword_hits = 0
+    daily_duplicate_count = 0
 
     try:
         feed = feedparser.parse(url)
@@ -174,12 +252,19 @@ def process_source(
                 print(f"Rejected by score: {score} < {MIN_SCORE}")
                 continue
 
+            fingerprint = make_fingerprint(title)
+            if fingerprint in sent_today:
+                daily_duplicate_count += 1
+                print("Daily duplicate skipped: already sent today.")
+                continue
+
             if send_successes + send_failures >= sends_remaining:
                 print("Telegram send skipped: MAX_SEND_PER_RUN limit reached")
                 continue
 
             message = build_telegram_message(score, name, matched_keywords, title, link)
             if send_message(message):
+                sent_today.add(fingerprint)
                 send_successes += 1
                 print("Telegram send: success")
             else:
@@ -194,6 +279,7 @@ def process_source(
             duplicate_link_count,
             rejected_by_score,
             negative_keyword_hits,
+            daily_duplicate_count,
         )
     except Exception as exc:
         print(f"\nSource: {name}")
@@ -206,14 +292,17 @@ def process_source(
             duplicate_link_count,
             rejected_by_score,
             negative_keyword_hits,
+            daily_duplicate_count,
         )
 
 
-def main() -> None:
+def run_collector() -> None:
     """Read RSS sources and send score-filtered Telegram alerts."""
+    today = get_kst_date()
     sources = load_sources()
     keywords = load_keywords()
     seen_links: set[str] = set()
+    sent_today = load_sent_today(today=today)
     total_checked_entries = 0
     total_matched_entries = 0
     total_send_successes = 0
@@ -221,6 +310,7 @@ def main() -> None:
     total_duplicate_link_count = 0
     total_rejected_by_score = 0
     total_negative_keyword_hits = 0
+    total_daily_duplicate_count = 0
 
     for source in sources:
         sends_remaining = MAX_SEND_PER_RUN - total_send_successes - total_send_failures
@@ -232,7 +322,8 @@ def main() -> None:
             duplicate_link_count,
             rejected_by_score,
             negative_keyword_hits,
-        ) = process_source(source, keywords, seen_links, sends_remaining)
+            daily_duplicate_count,
+        ) = process_source(source, keywords, seen_links, sent_today, sends_remaining)
         total_checked_entries += checked_entries
         total_matched_entries += matched_entries
         total_send_successes += send_successes
@@ -240,6 +331,9 @@ def main() -> None:
         total_duplicate_link_count += duplicate_link_count
         total_rejected_by_score += rejected_by_score
         total_negative_keyword_hits += negative_keyword_hits
+        total_daily_duplicate_count += daily_duplicate_count
+
+    save_sent_today(sent_today, today=today)
 
     print("\nSummary")
     print(f"RSS sources read: {len(sources)}")
@@ -250,6 +344,26 @@ def main() -> None:
     print(f"Telegram send failures: {total_send_failures}")
     print(f"Rejected by score: {total_rejected_by_score}")
     print(f"Negative keyword hits: {total_negative_keyword_hits}")
+    print(f"Daily duplicates skipped: {total_daily_duplicate_count}")
+    print(f"Sent today cache size: {len(sent_today)}")
+    print(f"Sent today date: {today}")
+
+
+def main() -> None:
+    """Run the collector or write the current KST date for workflow cache keys."""
+    parser = argparse.ArgumentParser(description="Research alert RSS collector")
+    parser.add_argument(
+        "--write-kst-date",
+        action="store_true",
+        help="Write the current KST date to date.txt and exit.",
+    )
+    args = parser.parse_args()
+
+    if args.write_kst_date:
+        write_kst_date()
+        return
+
+    run_collector()
 
 
 if __name__ == "__main__":
