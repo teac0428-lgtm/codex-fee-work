@@ -75,7 +75,7 @@ def process_source(
     keywords: list[str],
     seen_links: set[str],
     sends_remaining: int,
-) -> tuple[int, int, int, int]:
+) -> tuple[int, int, int, int, int]:
     """Print and send matched RSS entries for one source and return counts."""
     name = source.get("name", "Unnamed source")
     url = source.get("url")
@@ -83,12 +83,13 @@ def process_source(
     if not url:
         print(f"\nSource: {name}")
         print("  Error: missing RSS url")
-        return 0, 0, 0, 0
+        return 0, 0, 0, 0, 0
 
     checked_entries = 0
     matched_entries = 0
     send_successes = 0
     send_failures = 0
+    duplicate_link_count = 0
 
     try:
         feed = feedparser.parse(url)
@@ -98,14 +99,19 @@ def process_source(
         for entry in feed.entries:
             checked_entries += 1
             link = entry.get("link", "")
-            if link in seen_links:
+            if not link:
+                print(f"\nSource: {name}")
+                print("  Entry has no link; continuing with title/summary matching.")
+            elif link in seen_links:
+                duplicate_link_count += 1
                 continue
+            else:
+                seen_links.add(link)
 
             matched_keywords = find_matched_keywords(entry, keywords)
             if not matched_keywords:
                 continue
 
-            seen_links.add(link)
             matched_entries += 1
             title = entry.get("title", "No title")
 
@@ -126,11 +132,23 @@ def process_source(
                 send_failures += 1
                 print("Telegram send: failed")
 
-        return checked_entries, matched_entries, send_successes, send_failures
+        return (
+            checked_entries,
+            matched_entries,
+            send_successes,
+            send_failures,
+            duplicate_link_count,
+        )
     except Exception as exc:
         print(f"\nSource: {name}")
         print(f"  Error reading RSS source: {exc}")
-        return checked_entries, matched_entries, send_successes, send_failures
+        return (
+            checked_entries,
+            matched_entries,
+            send_successes,
+            send_failures,
+            duplicate_link_count,
+        )
 
 
 def main() -> None:
@@ -142,21 +160,28 @@ def main() -> None:
     total_matched_entries = 0
     total_send_successes = 0
     total_send_failures = 0
+    total_duplicate_link_count = 0
 
     for source in sources:
         sends_remaining = MAX_SEND_PER_RUN - total_send_successes - total_send_failures
-        checked_entries, matched_entries, send_successes, send_failures = process_source(
-            source, keywords, seen_links, sends_remaining
-        )
+        (
+            checked_entries,
+            matched_entries,
+            send_successes,
+            send_failures,
+            duplicate_link_count,
+        ) = process_source(source, keywords, seen_links, sends_remaining)
         total_checked_entries += checked_entries
         total_matched_entries += matched_entries
         total_send_successes += send_successes
         total_send_failures += send_failures
+        total_duplicate_link_count += duplicate_link_count
 
     print("\nSummary")
     print(f"RSS sources read: {len(sources)}")
     print(f"Entries checked: {total_checked_entries}")
     print(f"Entries matched: {total_matched_entries}")
+    print(f"Duplicate links removed: {total_duplicate_link_count}")
     print(f"Telegram send successes: {total_send_successes}")
     print(f"Telegram send failures: {total_send_failures}")
 
