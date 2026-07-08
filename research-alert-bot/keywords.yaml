@@ -1,0 +1,50 @@
+high_priority:
+  - HBM
+  - AI capex
+  - hyperscaler capex
+  - GPU cloud
+  - CoreWeave
+  - Meta cloud
+  - data center power
+  - DRAM ASP
+  - NAND ASP
+  - server DRAM
+  - enterprise SSD
+  - CoWoS capacity
+  - advanced packaging
+
+medium_priority:
+  - AI infrastructure
+  - memory cycle
+  - data center
+  - cloud contract
+  - GPU rental
+  - H100
+  - Blackwell
+  - capex guidance
+
+korean:
+  - 고대역폭메모리
+  - AI 데이터센터
+  - 데이터센터 전력
+  - 전력 인프라
+  - 서버 D램
+  - 기업용 SSD
+  - 하이퍼스케일러
+  - AI 설비투자
+  - 반도체 패키징
+
+negative_keywords:
+  - sponsored
+  - advertisement
+  - giveaway
+  - rumor
+  - stock rises
+  - stock falls
+  - price target
+  - analyst rating
+  - 특징주
+  - 급등
+  - 급락
+  - 목표가
+  - 광고
