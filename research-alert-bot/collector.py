@@ -22,27 +22,89 @@ KEYWORDS_FILE = BASE_DIR / "keywords.yaml"
 SENT_TODAY_FILE = BASE_DIR / "sent_today.json"
 KST_DATE_FILE = BASE_DIR / "date.txt"
 POSITIVE_KEYWORD_GROUPS = ("high_priority", "medium_priority", "korean")
-KEYWORD_GROUPS = (*POSITIVE_KEYWORD_GROUPS, "negative_keywords")
+NOISE_KEYWORD_GROUPS = (
+    "negative_keywords",
+    "advertisement_noise",
+    "market_noise",
+    "ticker_noise",
+)
+KEYWORD_GROUPS = (*POSITIVE_KEYWORD_GROUPS, "industry_context", *NOISE_KEYWORD_GROUPS)
 MAX_SEND_PER_RUN = 10
 MAX_ALERTS = MAX_SEND_PER_RUN
 MAX_ALERTS_PER_KEYWORD = 2
-MIN_SCORE = 5
+SEND_THRESHOLD = 15
+MIN_SCORE = SEND_THRESHOLD
 TITLE_WEIGHT = 2
-HIGH_PRIORITY_SCORE = 5
-MEDIUM_PRIORITY_SCORE = 3
-KOREAN_SCORE = 4
-NEGATIVE_KEYWORD_SCORE = -5
+SCORES = {
+    "high_priority": 15,
+    "medium_priority": 7,
+    "korean": 10,
+    "industry_context": 5,
+    "ticker_noise": -8,
+    "market_noise": -10,
+    "advertisement_noise": -20,
+    "negative_keywords": -10,
+}
 GROUP_PRIORITY = {
     "high_priority": 3,
     "korean": 2,
     "medium_priority": 1,
+    "industry_context": 0,
 }
-KEYWORD_SCORES = {
-    "high_priority": HIGH_PRIORITY_SCORE,
-    "medium_priority": MEDIUM_PRIORITY_SCORE,
-    "korean": KOREAN_SCORE,
-    "negative_keywords": NEGATIVE_KEYWORD_SCORE,
-}
+INDUSTRY_CONTEXT_KEYWORDS = [
+    "cloud contract",
+    "GPU capacity",
+    "data center",
+    "datacenter",
+    "capex",
+    "backlog",
+    "revenue backlog",
+    "AI infrastructure",
+    "AI infra",
+    "GPU cloud",
+    "Blackwell",
+    "GB200",
+    "GB300",
+    "power capacity",
+    "data center power",
+    "power constraint",
+    "lease agreement",
+    "capacity expansion",
+]
+COREWEAVE_ALIAS = [
+    "coreweave",
+    "$crwv",
+    "crwv stock",
+    "crwv shares",
+    "coreweave stock",
+    "coreweave shares",
+    "shares of coreweave",
+]
+COREWEAVE_GOOD_CONTEXT = [
+    "cloud contract",
+    "multi-year agreement",
+    "GPU capacity",
+    "data center",
+    "datacenter",
+    "data center expansion",
+    "AI infrastructure",
+    "AI infra",
+    "capex",
+    "revenue backlog",
+    "backlog",
+    "capacity sold out",
+    "Nvidia GPU",
+    "Blackwell",
+    "GB200",
+    "GB300",
+    "Anthropic",
+    "OpenAI",
+    "Meta",
+    "Microsoft",
+    "power capacity",
+    "lease agreement",
+    "financing for data centers",
+]
 CANDIDATES: list[dict[str, Any]] = []
 QUEUED_FINGERPRINTS: set[str] = set()
 
@@ -76,6 +138,28 @@ def make_fingerprint(title: str) -> str:
 def split_keyword_tokens(keyword: Any) -> list[str]:
     """Split a raw keyword value into stripped pipe-delimited tokens."""
     return [token.strip() for token in str(keyword).split("|") if token.strip()]
+
+
+def lower_tokens(keyword: Any) -> list[str]:
+    """Return lower-case tokens for case-insensitive matching."""
+    return [token.lower() for token in split_keyword_tokens(keyword)]
+
+
+def keyword_matches(text: str, keyword: Any) -> bool:
+    """Return whether any pipe-delimited keyword token exists in text."""
+    return any(token in text for token in lower_tokens(keyword))
+
+
+def find_keyword_matches(text: str, keywords: list[Any]) -> list[str]:
+    """Return representative keywords that match a lower-case text blob."""
+    matches: list[str] = []
+    for raw_keyword in keywords:
+        tokens = split_keyword_tokens(raw_keyword)
+        if not tokens:
+            continue
+        if any(token.lower() in text for token in tokens):
+            matches.append(tokens[0])
+    return matches
 
 
 def load_sent_today(path: Path = SENT_TODAY_FILE, today: str | None = None) -> set[str]:
@@ -161,14 +245,18 @@ def calculate_score(
     """Calculate a keyword score from an RSS entry title and summary."""
     title_text = title.lower()
     summary_text = summary.lower()
+    combined_text = f"{title} {summary}".lower()
     score = 0
     matched_keywords: list[dict[str, str]] = []
     excluded_keywords: list[str] = []
+    coreweave_matched = any(alias in combined_text for alias in COREWEAVE_ALIAS)
+    coreweave_good_context = any(
+        context.lower() in combined_text for context in COREWEAVE_GOOD_CONTEXT
+    )
 
-    for group, group_keywords in keywords.items():
-        base_score = KEYWORD_SCORES[group]
-        is_negative_group = group == "negative_keywords"
-        for raw_keyword in group_keywords:
+    for group in POSITIVE_KEYWORD_GROUPS:
+        base_score = SCORES[group]
+        for raw_keyword in keywords.get(group, []):
             tokens = split_keyword_tokens(raw_keyword)
             if not tokens:
                 continue
@@ -183,13 +271,104 @@ def calculate_score(
                 score += base_score
 
             if title_matched or summary_matched:
-                if is_negative_group:
-                    if keyword not in excluded_keywords:
-                        excluded_keywords.append(keyword)
-                else:
-                    add_matched_keyword(matched_keywords, keyword, group)
+                add_matched_keyword(matched_keywords, keyword, group)
+
+    if coreweave_matched and not any(
+        item["keyword"].lower() == "coreweave" for item in matched_keywords
+    ):
+        score += SCORES["high_priority"]
+        add_matched_keyword(matched_keywords, "CoreWeave", "high_priority")
+
+    industry_context_matches = find_keyword_matches(
+        combined_text,
+        [*INDUSTRY_CONTEXT_KEYWORDS, *keywords.get("industry_context", [])],
+    )
+    if industry_context_matches:
+        score += SCORES["industry_context"]
+        for keyword in industry_context_matches:
+            add_matched_keyword(matched_keywords, keyword, "industry_context")
+
+    for group in NOISE_KEYWORD_GROUPS:
+        base_score = SCORES[group]
+        for raw_keyword in keywords.get(group, []):
+            tokens = split_keyword_tokens(raw_keyword)
+            if not tokens:
+                continue
+
+            keyword = tokens[0]
+            if not any(token.lower() in combined_text for token in tokens):
+                continue
+
+            if keyword not in excluded_keywords:
+                excluded_keywords.append(f"{group}: {keyword}")
+
+            if (
+                coreweave_matched
+                and coreweave_good_context
+                and group in {"ticker_noise", "market_noise"}
+            ):
+                continue
+
+            score += base_score
 
     return score, matched_keywords, excluded_keywords
+
+
+def has_noise_group(excluded_keywords: list[str], group: str) -> bool:
+    """Return whether a formatted noise match belongs to a group."""
+    return any(keyword.startswith(f"{group}:") for keyword in excluded_keywords)
+
+
+def has_coreweave_alias(text: str) -> bool:
+    """Return whether CoreWeave or one of its ticker aliases appears."""
+    return any(alias in text for alias in COREWEAVE_ALIAS)
+
+
+def has_coreweave_good_context(text: str) -> bool:
+    """Return whether CoreWeave appears with a strong industry context."""
+    return any(context.lower() in text for context in COREWEAVE_GOOD_CONTEXT)
+
+
+def has_industry_context(text: str, keywords: dict[str, list[str]]) -> bool:
+    """Return whether text contains any configured or built-in industry context."""
+    return bool(
+        find_keyword_matches(
+            text,
+            [*INDUSTRY_CONTEXT_KEYWORDS, *keywords.get("industry_context", [])],
+        )
+    )
+
+
+def build_skip_reason(
+    title: str,
+    summary: str,
+    keywords: dict[str, list[str]],
+    excluded_keywords: list[str],
+) -> str | None:
+    """Return a hard-filter skip reason, or None when the entry may pass."""
+    text = f"{title} {summary}".lower()
+    has_coreweave = has_coreweave_alias(text)
+    has_good_context = has_coreweave_good_context(text)
+    has_ticker_noise = has_noise_group(excluded_keywords, "ticker_noise")
+    has_market_noise = has_noise_group(excluded_keywords, "market_noise")
+
+    if has_noise_group(excluded_keywords, "advertisement_noise"):
+        return "advertisement noise"
+    if has_coreweave and (has_ticker_noise or has_market_noise) and not has_good_context:
+        return "CoreWeave market noise"
+    if has_ticker_noise and not has_industry_context(text, keywords):
+        return "ticker-only noise"
+    return None
+
+
+def build_pass_reason(title: str, summary: str) -> str:
+    """Return a concise reason for why an alert passed filtering."""
+    text = f"{title} {summary}".lower()
+    if has_coreweave_alias(text) and has_coreweave_good_context(text):
+        return "CoreWeave + industry context"
+    if any(context.lower() in text for context in INDUSTRY_CONTEXT_KEYWORDS):
+        return "industry context"
+    return "score threshold"
 
 
 def get_primary_keyword(matched_keywords: list[dict[str, str]]) -> str:
@@ -218,10 +397,27 @@ def format_matched_keywords(matched_keywords: list[dict[str, str]]) -> str:
     )
 
 
+def format_matched_groups(matched_keywords: list[dict[str, str]]) -> str:
+    """Format unique matched groups in first-seen order."""
+    groups: list[str] = []
+    for item in matched_keywords:
+        group = item["group"]
+        if group not in groups:
+            groups.append(group)
+    return ", ".join(groups)
+
+
+def format_noise(excluded_keywords: list[str]) -> str:
+    """Format noise matches for messages and logs."""
+    return ", ".join(excluded_keywords) if excluded_keywords else "none"
+
+
 def build_telegram_message(
     score: int,
     source_name: str,
     matched_keywords: list[dict[str, str]],
+    excluded_keywords: list[str],
+    reason: str,
     title: str,
     link: str,
 ) -> str:
@@ -231,6 +427,9 @@ def build_telegram_message(
         f"Score: {score}\n"
         f"Source: {source_name}\n"
         f"Matched: {format_matched_keywords(matched_keywords)}\n"
+        f"Matched Groups: {format_matched_groups(matched_keywords)}\n"
+        f"Noise: {format_noise(excluded_keywords)}\n"
+        f"Reason: {reason}\n"
         f"Title: {title}\n"
         f"Link: {link}"
     )
@@ -282,10 +481,13 @@ def process_source(
                 seen_links.add(link)
 
             title = entry.get("title", "No title")
-            summary = entry.get("summary", "")
+            summary = (
+                f"{entry.get('summary', '')} {entry.get('description', '')}".strip()
+            )
             score, matched_keywords, excluded_keywords = calculate_score(
                 title, summary, keywords
             )
+            skip_reason = build_skip_reason(title, summary, keywords, excluded_keywords)
 
             if excluded_keywords:
                 negative_keyword_hits += 1
@@ -293,6 +495,11 @@ def process_source(
                     f"Negative keywords matched for '{title}': "
                     f"{', '.join(excluded_keywords)}"
                 )
+
+            if skip_reason:
+                rejected_by_score += 1
+                print(f"[SKIP] {skip_reason}: {title}")
+                continue
 
             if not matched_keywords:
                 continue
@@ -324,8 +531,10 @@ def process_source(
                     "fingerprint": fingerprint,
                     "link": link,
                     "matched_keywords": matched_keywords,
+                    "excluded_keywords": excluded_keywords,
                     "primary_group_priority": get_primary_group_priority(matched_keywords),
                     "primary_keyword": get_primary_keyword(matched_keywords),
+                    "reason": build_pass_reason(title, summary),
                     "score": score,
                     "source_name": name,
                     "title": title,
@@ -391,6 +600,8 @@ def send_candidates(candidates: list[dict[str, Any]], sent_today: set[str]) -> t
             candidate["score"],
             candidate["source_name"],
             candidate["matched_keywords"],
+            candidate["excluded_keywords"],
+            candidate["reason"],
             candidate["title"],
             candidate["link"],
         )

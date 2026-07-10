@@ -6,6 +6,7 @@ A Python RSS alert bot that monitors Google News RSS feeds, filters news by rese
 
 - Collects Google News RSS feeds from `sources.yaml`.
 - Filters RSS entries using keyword groups in `keywords.yaml`.
+- Applies advertisement, market-summary, ticker-only, and CoreWeave context filters before sending.
 - Sends matched news alerts to Telegram.
 - Supports manual and hourly scheduled runs with GitHub Actions.
 - Limits Telegram sends per run to avoid message floods.
@@ -114,7 +115,7 @@ To add a source:
 
 ## Edit `keywords.yaml`
 
-`keywords.yaml` has three keyword groups:
+`keywords.yaml` has positive keyword groups and noise/context groups:
 
 ```yaml
 high_priority:
@@ -123,9 +124,30 @@ medium_priority:
   - data center
 korean:
   - 고대역폭메모리
+industry_context:
+  - cloud contract
+advertisement_noise:
+  - sponsored
+market_noise:
+  - price target
+ticker_noise:
+  - CRWV stock
 ```
 
-To add keywords, append them under the appropriate group. Matching is case-insensitive for English keywords.
+To add keywords, append them under the appropriate group. Matching is case-insensitive for English keywords. Use `|` to group aliases under one representative keyword, for example `HBM | High Bandwidth Memory`.
+
+## Filtering notes
+
+- Advertisement noise such as `sponsored`, `paid content`, or `promo code` is skipped immediately.
+- Ticker-only CoreWeave items such as `CRWV stock` or `CoreWeave shares` are skipped unless an industry context keyword is also present.
+- CoreWeave aliases (`CoreWeave`, `$CRWV`, `CRWV stock`, `CoreWeave shares`) are treated as the same entity.
+- CoreWeave with strong context such as `cloud contract`, `GPU capacity`, `data center`, `Blackwell`, `backlog`, or `power capacity` can pass, and ticker/market noise penalties are waived for that entry.
+
+Quick local syntax check:
+
+```bash
+python -m py_compile research-alert-bot/collector.py
+```
 
 ## Common errors
 
