@@ -1,0 +1,147 @@
+high_priority:
+  - HBM | High Bandwidth Memory
+  - AI capex | AI capital expenditure
+  - hyperscaler capex
+  - GPU cloud
+  - CoreWeave
+  - Meta cloud
+  - data center power | datacenter power
+  - DRAM ASP
+  - NAND ASP
+  - server DRAM
+  - enterprise SSD
+  - CoWoS capacity
+  - advanced packaging
+
+medium_priority:
+  - AI infrastructure | AI infra
+  - memory cycle
+  - data center | datacenter
+  - cloud contract
+  - GPU rental
+  - H100
+  - Blackwell
+  - capex guidance
+
+korean:
+  - 고대역폭메모리
+  - AI 데이터센터 | 인공지능 데이터센터
+  - 데이터센터 전력
+  - 전력 인프라
+  - 서버 D램
+  - 기업용 SSD
+  - 하이퍼스케일러
+  - AI 설비투자
+  - 반도체 패키징
+
+industry_context:
+  - cloud contract
+  - GPU capacity
+  - data center
+  - datacenter
+  - capex
+  - backlog
+  - revenue backlog
+  - AI infrastructure
+  - AI infra
+  - GPU cloud
+  - Blackwell
+  - GB200
+  - GB300
+  - power capacity
+  - data center power
+  - power constraint
+  - lease agreement
+  - capacity expansion
+
+negative_keywords:
+  - rumor
+  - stock rises
+  - stock falls
+  - price target
+  - analyst rating
+  - 특징주
+  - 급등
+  - 급락
+  - 목표가
+  - 광고
+
+advertisement_noise:
+  - advertisement
+  - advertorial
+  - paid content
+  - sponsored
+  - promoted
+  - giveaway
+  - coupon
+  - promo code
+  - newsletter signup
+  - free report
+  - download now
+  - 광고
+  - 협찬
+  - 이벤트
+  - 무료 증정
+
+market_noise:
+  - stock rises
+  - stock falls
+  - stock jumps
+  - stock drops
+  - stock tumbles
+  - stock plunges
+  - shares rise
+  - shares fall
+  - shares jump
+  - shares drop
+  - shares tumble
+  - shares plunge
+  - premarket
+  - after hours
+  - before the bell
+  - after the bell
+  - market opens
+  - market close
+  - stocks to watch
+  - watchlist
+  - why shares
+  - why stock
+  - moving today
+  - price target
+  - analyst rating
+  - analyst upgrade
+  - analyst downgrade
+  - upgraded to
+  - downgraded to
+  - strong buy
+  - should you buy
+  - is it a buy
+  - technical analysis
+  - options activity
+  - unusual options
+  - insider selling
+  - insider buying
+  - 주가
+  - 급등
+  - 급락
+  - 상승
+  - 하락
+  - 특징주
+  - 목표가
+  - 투자의견
+  - 증권가
+  - 장전
+  - 시간외
+  - 오늘의 종목
+
+ticker_noise:
+  - $CRWV
+  - NASDAQ: CRWV
+  - CRWV stock
+  - CRWV shares
+  - CoreWeave stock
+  - CoreWeave shares
+  - shares of CoreWeave
+  - CRWV price
+  - CRWV target
+  - CRWV rating
