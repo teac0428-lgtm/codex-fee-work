@@ -1,0 +1,27 @@
+rss:
+  - name: Google News - K-beauty export
+    url: "https://news.google.com/rss/search?q=%22K-beauty%22+export&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - Korean cosmetics export
+    url: "https://news.google.com/rss/search?q=%22Korean+cosmetics%22+export&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - Korean skincare retail sales
+    url: "https://news.google.com/rss/search?q=%22Korean+skincare%22+%22retail+sales%22&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - Korean skincare distribution agreement
+    url: "https://news.google.com/rss/search?q=%22Korean+skincare%22+%22distribution+agreement%22&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - Cosmetics ODM Korea capacity
+    url: "https://news.google.com/rss/search?q=%22cosmetics+ODM%22+Korea+capacity&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - Korean beauty device FDA
+    url: "https://news.google.com/rss/search?q=%22Korean+beauty+device%22+FDA&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - K-beauty Sephora expansion
+    url: "https://news.google.com/rss/search?q=%22K-beauty%22+Sephora+expansion&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - K-beauty regulation
+    url: "https://news.google.com/rss/search?q=%22K-beauty%22+regulation&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - Cosmetics MoCRA Korea
+    url: "https://news.google.com/rss/search?q=cosmetics+MoCRA+Korea&hl=en-US&gl=US&ceid=US:en"
+  - name: Google News - K뷰티 수출액
+    url: "https://news.google.com/rss/search?q=K%EB%B7%B0%ED%8B%B0+%EC%88%98%EC%B6%9C%EC%95%A1&hl=ko&gl=KR&ceid=KR:ko"
+  - name: Google News - 한국 화장품 국가별 수출
+    url: "https://news.google.com/rss/search?q=%ED%95%9C%EA%B5%AD+%ED%99%94%EC%9E%A5%ED%92%88+%EA%B5%AD%EA%B0%80%EB%B3%84+%EC%88%98%EC%B6%9C&hl=ko&gl=KR&ceid=KR:ko"
+  - name: Google News - 화장품 ODM 생산능력
+    url: "https://news.google.com/rss/search?q=%ED%99%94%EC%9E%A5%ED%92%88+ODM+%EC%83%9D%EC%82%B0%EB%8A%A5%EB%A0%A5&hl=ko&gl=KR&ceid=KR:ko"
+  - name: Google News - 뷰티 디바이스 수출 인증
+    url: "https://news.google.com/rss/search?q=%EB%B7%B0%ED%8B%B0+%EB%94%94%EB%B0%94%EC%9D%B4%EC%8A%A4+%EC%88%98%EC%B6%9C+%EC%9D%B8%EC%A6%9D&hl=ko&gl=KR&ceid=KR:ko"

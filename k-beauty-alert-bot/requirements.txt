@@ -1,0 +1,5 @@
+feedparser
+PyYAML
+python-dotenv
+requests
+pytest
