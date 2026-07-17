@@ -1,0 +1,391 @@
+threshold: 15
+max_send_per_run: 10
+score_caps:
+  domain_anchor_only: 7
+  domain_plus_event_without_evidence: 14
+
+clusters:
+  domain_anchor:
+    score: 5
+    max_hits_per_article: 1
+    terms:
+      - K-beauty
+      - K beauty
+      - Korean skincare
+      - Korean cosmetics
+      - K뷰티
+      - 한국 화장품
+
+  broad_domain_anchor:
+    score: 0
+    max_hits_per_article: 0
+    terms:
+      - skincare
+      - beauty care
+      - cosmetics
+      - 화장품
+      - 스킨케어
+
+  vertical_anchor:
+    score: 4
+    max_hits_per_article: 1
+    terms:
+      - beauty device
+      - beauty devices
+      - 뷰티 디바이스
+      - 미용기기
+    required_context_any:
+      - Korea
+      - Korean
+      - 한국
+      - export
+      - shipment
+      - distribution
+      - FDA
+      - certification
+      - approval
+      - revenue
+      - units sold
+      - 수출
+      - 출하
+      - 유통
+      - 인증
+      - 판매량
+      - 해외 진출
+
+  industry_context:
+    score: 5
+    max_hits_per_article: 1
+    terms:
+      - export
+      - exports
+      - retail distribution
+      - distribution
+      - market share
+      - retail sales
+      - ODM
+      - OEM
+      - manufacturing
+      - production capacity
+      - regulatory
+      - regulation
+      - FDA
+      - MoCRA
+      - 수출
+      - 유통망
+      - 점유율
+      - 입점
+      - 생산능력
+      - 규제
+      - 인증
+
+conditional_event:
+  product_launch:
+    score: 4
+    terms:
+      - product launch
+      - launches
+      - launch
+      - 출시
+    required_context_any:
+      - Sephora
+      - Ulta Beauty
+      - Amazon
+      - Costco
+      - Target
+      - distribution agreement
+      - retail rollout
+      - market entry
+      - store expansion
+      - country
+      - region
+      - sales volume
+      - revenue
+      - 입점
+      - 유통계약
+      - 해외 진출
+      - 판매량
+      - 매출
+
+  investment:
+    score: 5
+    terms:
+      - investment
+      - invests
+      - 투자
+    good_context:
+      - factory
+      - plant
+      - manufacturing
+      - capacity
+      - production line
+      - overseas subsidiary
+      - R&D center
+      - acquisition
+      - 공장
+      - 생산시설
+      - 생산능력
+      - 해외법인
+      - 연구개발
+      - 인수
+    bad_context:
+      - investors
+      - shares
+      - stock
+      - price target
+      - buy rating
+      - portfolio
+      - 투자자
+      - 주가
+      - 목표가
+      - 매수 의견
+
+  revenue:
+    score: 5
+    terms:
+      - revenue
+      - sales
+      - 매출
+    required_evidence_any:
+      - numeric
+      - performance
+      - market_expansion
+
+  duty_free:
+    score: 4
+    terms:
+      - duty-free
+      - duty free
+      - 면세점
+    good_context:
+      - duty-free sales
+      - duty-free revenue
+      - duty-free channel
+      - duty-free store entry
+      - 면세점 매출
+      - 면세점 입점
+      - 면세 유통채널
+    bad_context:
+      - duty-free shopping guide
+      - best duty-free products
+      - duty-free discount
+      - 면세점 추천템
+      - 면세점 할인
+
+  beauty_device:
+    score: 4
+    terms:
+      - beauty device
+      - beauty devices
+      - 뷰티 디바이스
+      - 미용기기
+    required_context_any:
+      - Korean
+      - Korea
+      - 한국
+      - export
+      - shipment
+      - distribution
+      - FDA
+      - certification
+      - approval
+      - revenue
+      - units sold
+      - market entry
+      - 수출
+      - 출하
+      - 유통
+      - 인증
+      - 판매량
+      - 해외 진출
+
+evidence_context:
+  numeric:
+    score: 2
+    terms:
+      - percent
+      - "%"
+      - million
+      - billion
+      - YoY
+      - year-over-year
+      - 전년 대비
+      - 억원
+      - 만 달러
+  contract:
+    score: 4
+    terms:
+      - contract
+      - agreement
+      - distribution agreement
+      - supply agreement
+      - 계약
+      - 유통계약
+      - 공급계약
+  performance:
+    score: 4
+    terms:
+      - revenue
+      - operating profit
+      - shipments
+      - units sold
+      - retail sales
+      - sell-through
+      - market share
+      - 매출
+      - 영업이익
+      - 출하량
+      - 판매량
+      - 점유율
+  capacity:
+    score: 4
+    terms:
+      - manufacturing capacity
+      - capacity expansion
+      - production line
+      - plant expansion
+      - 생산능력
+      - 생산라인
+      - 공장 증설
+  regulation:
+    score: 4
+    terms:
+      - FDA
+      - MoCRA
+      - regulation
+      - certification
+      - approval
+      - 규제
+      - 인증
+      - 허가
+  market_expansion:
+    score: 4
+    terms:
+      - market entry
+      - store expansion
+      - retail rollout
+      - export
+      - distribution
+      - Sephora
+      - Ulta Beauty
+      - Amazon
+      - Costco
+      - Target
+      - 입점
+      - 점포 확대
+      - 수출액
+      - 유통망 확대
+
+noise:
+  immediate_exclude:
+    - how to use it
+  advertisement_noise:
+    penalty: -20
+    exclude_if_no_strong_evidence: true
+    terms:
+      - sponsored
+      - advertisement
+      - advertorial
+      - affiliate link
+      - promo code
+      - coupon code
+      - limited-time offer
+      - giveaway
+      - shop now
+      - 광고
+      - 협찬
+      - 제휴 링크
+      - 할인 코드
+      - 쿠폰
+      - 특가
+      - 무료 증정
+  promotion_noise:
+    penalty: -15
+    exclude_if_no_strong_evidence: true
+    terms:
+      - on sale
+      - sale today
+      - limited-time sale
+      - flash sale
+      - percent off
+      - "% off"
+      - discount code
+      - shop now
+      - 오늘 할인
+      - 기간 한정 할인
+      - 할인 코드
+  market_noise:
+    penalty: -15
+    exclude_if_no_strong_evidence: true
+    terms:
+      - stock rises
+      - stock falls
+      - shares jump
+      - shares drop
+      - premarket
+      - after hours
+      - price target
+      - analyst upgrade
+      - analyst downgrade
+      - stocks to watch
+      - should you buy
+      - why stock
+      - technical analysis
+      - 특징주
+      - 급등
+      - 급락
+      - 목표가
+      - 투자의견
+      - 화장품주
+      - 관련주
+      - 수혜주
+      - 장전
+      - 시간외
+  consumer_content_noise:
+    penalty: -12
+    exclude_if_no_strong_evidence: true
+    terms:
+      - beauty routine
+      - skincare routine
+      - how to use
+      - makeup tutorial
+      - before and after
+      - celebrity beauty
+      - best serum
+      - best moisturizer
+      - must-have products
+      - shopping guide
+      - 뷰티 루틴
+      - 스킨케어 루틴
+      - 사용법
+      - 메이크업 방법
+      - 연예인 화장품
+      - 추천 화장품
+      - 추천템
+      - 인생템
+
+entities:
+  - canonical: Cosmax
+    aliases: [cosmax, 코스맥스]
+    good_context: [ODM, manufacturing capacity, production, contract, revenue, 생산능력, 공장, 수주]
+    bad_context: [stock, shares, price target, 주가, 목표가]
+  - canonical: Kolmar Korea
+    aliases: [Kolmar Korea, 한국콜마]
+    good_context: [ODM, OEM, manufacturing, contract, capacity, 수주, 생산, 생산능력]
+    bad_context: [stock, shares, price target, 주가, 목표가]
+  - canonical: Amorepacific
+    aliases: [amorepacific, 아모레퍼시픽]
+    good_context: [export, revenue, overseas, distribution, 수출, 매출, 해외, 유통]
+    bad_context: [stock, shares, price target, 주가, 목표가]
+  - canonical: Olive Young
+    aliases: [Olive Young, 올리브영]
+    good_context: [overseas, global, online mall, export, sales, 해외, 글로벌, 역직구, 매출]
+    bad_context: [coupon, discount, 추천템, 쿠폰, 할인]
+  - canonical: Sephora
+    aliases: [Sephora, 세포라]
+    good_context: [launch, retail rollout, store entry, distribution, 입점, 유통, 매장]
+    bad_context: [shopping guide, discount, 추천, 할인]
+  - canonical: Ulta Beauty
+    aliases: [Ulta Beauty, Ulta]
+    good_context: [distribution agreement, retail rollout, store entry, launch]
+    bad_context: [shopping guide, discount]
